@@ -56,6 +56,7 @@
       <button id="todos">Todos</button>
       <button id="desligar">Desligar</button>
       <button id="conectar">Conectar ao ESP32</button>
+      <p id="status"></p>
     </section>
 
     <script>
@@ -70,6 +71,9 @@
       }
 
       async function connectToESP32() {
+        const statusElement = document.getElementById("status");
+        statusElement.textContent = "Procurando ESP32...";
+
         try {
           const device = await navigator.bluetooth.requestDevice({
             filters: [
@@ -79,19 +83,24 @@
               },
             ],
           });
+          statusElement.textContent = "Dispositivo encontrado. Conectando...";
 
           const server = await device.gatt.connect();
+          statusElement.textContent = "Conectado. Obtendo serviço...";
 
           const service = await server.getPrimaryService(
             "0000ffe0-0000-1000-8000-00805f9b34fb"
           );
+          statusElement.textContent =
+            "Serviço obtido. Obtendo característica...";
 
           ledCharacteristic = await service.getCharacteristic(
             "0000ffe1-0000-1000-8000-00805f9b34fb"
           );
-
+          statusElement.textContent = "Pronto para enviar comandos!";
           alert("Conectado ao ESP32!");
         } catch (error) {
+          statusElement.textContent = "Erro de conexão.";
           console.error("Erro ao conectar:", error);
           alert("Falha ao conectar ao ESP32. Verifique o Bluetooth.");
         }
