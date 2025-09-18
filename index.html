@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ESP32 LED Control</title>
+    <style>
+      .buttons-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      button {
+        padding: 10px 20px;
+        width: 10rem;
+        margin: 10px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #conectar {
+        background-color: #50a6ec;
+      }
+      .vermelho-ativo {
+        background-color: #cf5c5c;
+        color: #070b33;
+      }
+
+      .amarelo-ativo {
+        background-color: #d4d473;
+        color: #070b33;
+      }
+
+      .verde-ativo {
+        background-color: #65ca65;
+        color: #070b33;
+      }
+
+      .todos-ativo {
+        background-color: #50a6ec;
+        color: #070b33;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="buttons-section">
+      <h1>Controle de Leds</h1>
+      <button id="vermelho">Vermelho</button>
+      <button id="amarelo">Amarelo</button>
+      <button id="verde">Verde</button>
+      <button id="todos">Todos</button>
+      <button id="desligar">Desligar</button>
+      <button id="conectar">Conectar ao ESP32</button>
+    </section>
+
+    <script>
+      let ledCharacteristic;
+
+      const ledButtons = document.querySelectorAll(
+        "#vermelho, #amarelo, #verde, #todos, #desligar"
+      );
+
+      async function connectToESP32() {
+        try {
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{ name: "ESP32_LEDS" }],
+            optionalServices: ["0000ffe0-0000-1000-8000-00805f9b34fb"],
+          });
+
+          const server = await device.gatt.connect();
+
+          const service = await server.getPrimaryService(
+            "0000ffe0-0000-1000-8000-00805f9b34fb"
+          );
+
+          ledCharacteristic = await service.getCharacteristic(
+            "0000ffe1-0000-1000-8000-00805f9b34fb"
+          );
+
+          alert("Conectado ao ESP32!");
+        } catch (error) {
+          console.error("Erro ao conectar:", error);
+          alert("Falha ao conectar ao ESP32. Verifique o Bluetooth.");
+        }
+      }
+
+      function removeActiveClasses() {
+        ledButtons.forEach((button) => {
+          button.classList.remove(
+            "vermelho-ativo",
+            "amarelo-ativo",
+            "verde-ativo",
+            "todos-ativo"
+          );
+        });
+      }
+
+      async function sendCommand(command) {
+        if (ledCharacteristic) {
+          // Converte o comando de string para um array de bytes
+          const encoder = new TextEncoder();
+          const data = encoder.encode(command);
+          await ledCharacteristic.writeValue(data);
+          removeActiveClasses();
+          if (buttonId !== "desligar") {
+            const button = document.getElementById(buttonId);
+            button.classList.add(`${buttonId}-ativo`); // Adiciona a cor ao botão clicado
+          }
+        } else {
+          alert("Por favor, conecte ao ESP32 primeiro.");
+        }
+      }
+
+      document
+        .getElementById("conectar")
+        .addEventListener("click", connectToESP32);
+      document
+        .getElementById("vermelho")
+        .addEventListener("click", () => sendCommand("v"));
+      document
+        .getElementById("amarelo")
+        .addEventListener("click", () => sendCommand("a"));
+      document
+        .getElementById("verde")
+        .addEventListener("click", () => sendCommand("g"));
+      document
+        .getElementById("todos")
+        .addEventListener("click", () => sendCommand("t"));
+      document
+        .getElementById("desligar")
+        .addEventListener("click", () => sendCommand("d"));
+    </script>
+  </body>
+</html>
